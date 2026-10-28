@@ -47,6 +47,12 @@
     <string name="show_language_switch_key">Show language switch key</string>
     <!-- Emojis -->
     <string name="emojis">Emojis</string>
+    <string name="gifs">GIFs</string>
+    <string name="search_gifs">Search GIFs</string>
+    <string name="gif_loading">Loading GIFs…</string>
+    <string name="gif_not_configured">GIF search is not configured for this build.</string>
+    <string name="gif_load_failed">Unable to load GIFs.</string>
+    <string name="gif_preview">GIF preview</string>
     <string name="recently_used">Recently used</string>
     <string name="smileys_and_emotions">Smileys and emotions</string>
     <string name="people_and_body">People and body</string>

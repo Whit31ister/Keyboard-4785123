@@ -175,6 +175,21 @@
                 android:text="@string/emojis"
                 android:textSize="@dimen/big_text_size" />
 
+            <TextView
+                android:id="@+id/gif_palette_button"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/emoji_palette_btn_size"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="@dimen/medium_margin"
+                android:background="@drawable/keyboard_key_selector"
+                android:gravity="center"
+                android:minWidth="@dimen/emoji_palette_btn_size"
+                android:paddingStart="@dimen/small_margin"
+                android:paddingEnd="@dimen/small_margin"
+                android:text="@string/gifs"
+                android:textStyle="bold" />
+
         </RelativeLayout>
 
         <RelativeLayout
@@ -191,6 +206,56 @@
                 android:clipToPadding="false"
                 android:padding="@dimen/small_margin"
                 android:scrollbars="vertical" />
+
+            <LinearLayout
+                android:id="@+id/gif_panel"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <EditText
+                    android:id="@+id/gif_search"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/search_gifs"
+                    android:imeOptions="actionSearch"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:padding="@dimen/small_margin" />
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:id="@+id/gif_tags"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingStart="@dimen/small_margin"
+                        android:paddingEnd="@dimen/small_margin" />
+                </HorizontalScrollView>
+
+                <TextView
+                    android:id="@+id/gif_status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:padding="@dimen/small_margin"
+                    android:text="@string/gif_loading"
+                    android:visibility="gone" />
+
+                <org.fossify.commons.views.MyRecyclerView
+                    android:id="@+id/gifs_list"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:clipToPadding="false"
+                    android:padding="@dimen/small_margin"
+                    android:scrollbars="vertical" />
+            </LinearLayout>
 
         </RelativeLayout>
 

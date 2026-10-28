@@ -40,7 +40,9 @@ import android.widget.inline.InlineContentView
 import androidx.annotation.RequiresApi
 import androidx.core.animation.doOnEnd
 import androidx.core.animation.doOnStart
+import androidx.core.widget.doAfterTextChanged
 import androidx.core.view.ViewCompat
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.core.view.children
 import androidx.core.view.updateMarginsRelative
 import androidx.emoji2.text.EmojiCompat
@@ -65,12 +67,14 @@ import org.fossify.commons.extensions.toast
 import org.fossify.commons.helpers.FontHelper
 import org.fossify.commons.helpers.HIGHER_ALPHA
 import org.fossify.commons.helpers.ensureBackgroundThread
+import org.fossify.keyboard.BuildConfig
 import org.fossify.commons.helpers.isPiePlus
 import org.fossify.keyboard.R
 import org.fossify.keyboard.activities.ManageClipboardItemsActivity
 import org.fossify.keyboard.activities.SettingsActivity
 import org.fossify.keyboard.adapters.ClipsKeyboardAdapter
 import org.fossify.keyboard.adapters.EmojisAdapter
+import org.fossify.keyboard.adapters.GifsAdapter
 import org.fossify.keyboard.databinding.ItemEmojiCategoryBinding
 import org.fossify.keyboard.databinding.KeyboardKeyPreviewBinding
 import org.fossify.keyboard.databinding.KeyboardPopupKeyboardBinding
@@ -89,6 +93,7 @@ import org.fossify.keyboard.helpers.AccessHelper
 import org.fossify.keyboard.helpers.EMOJI_SPEC_FILE_PATH
 import org.fossify.keyboard.helpers.EmojiData
 import org.fossify.keyboard.helpers.KeyboardFeedbackManager
+import org.fossify.keyboard.helpers.GifRepository
 import org.fossify.keyboard.helpers.LANGUAGE_TURKISH_Q
 import org.fossify.keyboard.helpers.LANGUAGE_VIETNAMESE_TELEX
 import org.fossify.keyboard.helpers.LANGUAGE_VN_TELEX
@@ -114,6 +119,7 @@ import org.fossify.keyboard.interfaces.RefreshClipsListener
 import org.fossify.keyboard.models.Clip
 import org.fossify.keyboard.models.ClipsSectionLabel
 import org.fossify.keyboard.models.ListItem
+import org.fossify.keyboard.models.GifItem
 import java.util.Arrays
 import java.util.Locale
 
@@ -134,6 +140,9 @@ class MyKeyboardView @JvmOverloads constructor(
 
     private var keyboardPopupBinding: KeyboardPopupKeyboardBinding? = null
     private var keyboardViewBinding: KeyboardViewKeyboardBinding? = null
+    private var gifRepository: GifRepository? = null
+    private var gifSelectionListener: ((GifItem) -> Unit)? = null
+    private var gifPanelInitialized = false
 
     private var accessHelper: AccessHelper? = null
     private val feedbackManager by lazy { KeyboardFeedbackManager(context) }
@@ -449,12 +458,25 @@ class MyKeyboardView @JvmOverloads constructor(
                 vibrateIfNeeded()
                 closeEmojiPalette()
             }
+
+            gifPaletteButton.setOnClickListener {
+                vibrateIfNeeded()
+                if (gifPanel.isShown) {
+                    showEmojiPanel()
+                } else {
+                    openGifPalette()
+                }
+            }
         }
     }
 
     fun setEditorInfo(editorInfo: EditorInfo) {
         emojiCompatMetadataVersion =
             editorInfo.extras?.getInt(EmojiCompat.EDITOR_INFO_METAVERSION_KEY, 0) ?: 0
+    }
+
+    fun setGifSelectionListener(listener: (GifItem) -> Unit) {
+        gifSelectionListener = listener
     }
 
     fun setupKeyboard(changedView: View? = null) {
@@ -1739,15 +1761,104 @@ class MyKeyboardView @JvmOverloads constructor(
     fun openEmojiPalette() {
         keyboardViewBinding!!.emojiPaletteHolder.beVisible()
         keyboardViewBinding!!.suggestionsHolder.beGone()
+        showEmojiPanel()
         setupEmojis()
     }
 
     private fun closeEmojiPalette() {
         keyboardViewBinding?.apply {
             emojiPaletteHolder.beGone()
+            gifPanel.beGone()
+            emojisList.beVisible()
             emojisList.scrollToPosition(0)
             suggestionsHolder.beVisible()
         }
+    }
+
+    private fun showEmojiPanel() {
+        keyboardViewBinding?.apply {
+            gifPanel.beGone()
+            emojisList.beVisible()
+            emojiPaletteLabel.setText(R.string.emojis)
+            gifPaletteButton.setText(R.string.gifs)
+        }
+    }
+
+    fun openGifPalette() {
+        keyboardViewBinding?.apply {
+            emojiPaletteHolder.beVisible()
+            suggestionsHolder.beGone()
+            emojisList.beGone()
+            gifPanel.beVisible()
+            emojiPaletteLabel.setText(R.string.gifs)
+            gifPaletteButton.setText(R.string.emojis)
+            setupGifPanel()
+        }
+    }
+
+    private fun setupGifPanel() {
+        val binding = keyboardViewBinding ?: return
+        val repository = gifRepository ?: GifRepository(safeStorageContext).also { gifRepository = it }
+        if (gifPanelInitialized) return
+
+        binding.gifTags.removeAllViews()
+        listOf("Trending", "Reaction", "Funny", "Love").forEach { tag ->
+            TextView(context).apply {
+                text = tag
+                setTextColor(mTextColor)
+                setPadding(
+                    resources.getDimensionPixelSize(R.dimen.small_margin),
+                    resources.getDimensionPixelSize(R.dimen.small_margin),
+                    resources.getDimensionPixelSize(R.dimen.small_margin),
+                    resources.getDimensionPixelSize(R.dimen.small_margin)
+                )
+                setOnClickListener {
+                    binding.gifSearch.setText(if (tag == "Trending") "" else tag)
+                }
+                binding.gifTags.addView(this)
+            }
+        }
+        binding.gifsList.layoutManager = GridLayoutManager(context, 3)
+        binding.gifsList.adapter = GifsAdapter { item ->
+            gifSelectionListener?.invoke(item)
+            vibrateIfNeeded()
+        }
+        binding.gifSearch.doAfterTextChanged {
+            val query = it?.toString().orEmpty()
+            binding.gifStatus.beVisible()
+            binding.gifStatus.setText(R.string.gif_loading)
+            repository.search(query) { result ->
+                result.onSuccess { gifs ->
+                    binding.gifStatus.beGoneIf(gifs.isNotEmpty())
+                    (binding.gifsList.adapter as GifsAdapter).submitList(gifs)
+                    if (gifs.isEmpty()) {
+                        binding.gifStatus.beVisible()
+                        binding.gifStatus.text = context.getString(R.string.gif_load_failed)
+                    }
+                }.onFailure {
+                    binding.gifStatus.beVisible()
+                    binding.gifStatus.text = if (it.message?.contains("not configured") == true) {
+                        context.getString(R.string.gif_not_configured)
+                    } else {
+                        context.getString(R.string.gif_load_failed)
+                    }
+                    (binding.gifsList.adapter as GifsAdapter).submitList(emptyList())
+                }
+            }
+        }
+        if (BuildConfig.GIF_API_KEY.isBlank()) {
+            binding.gifStatus.beVisible()
+            binding.gifStatus.setText(R.string.gif_not_configured)
+        } else if ((binding.gifsList.adapter as GifsAdapter).itemCount == 0) {
+            binding.gifSearch.text?.clear()
+        }
+        gifPanelInitialized = true
+    }
+
+    fun closeGifPanel() {
+        gifRepository?.close()
+        gifRepository = null
+        gifPanelInitialized = false
     }
 
     private fun setupEmojis() {

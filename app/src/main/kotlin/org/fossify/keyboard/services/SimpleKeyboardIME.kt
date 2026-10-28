@@ -74,6 +74,7 @@ import org.fossify.keyboard.extensions.getSelectedLanguagesSorted
 import org.fossify.keyboard.extensions.getStrokeColor
 import org.fossify.keyboard.extensions.safeStorageContext
 import org.fossify.keyboard.helpers.HEIGHT_PERCENTAGE
+import org.fossify.keyboard.helpers.GifRepository
 import org.fossify.keyboard.helpers.KEYBOARD_LANGUAGE
 import org.fossify.keyboard.helpers.LANGUAGE_ARABIC
 import org.fossify.keyboard.helpers.LANGUAGE_BELARUSIAN_CYRL
@@ -121,9 +122,11 @@ import org.fossify.keyboard.helpers.MyKeyboard
 import org.fossify.keyboard.helpers.SHOW_KEY_BORDERS
 import org.fossify.keyboard.helpers.SHOW_NUMBERS_ROW
 import org.fossify.keyboard.helpers.ShiftState
+import org.fossify.keyboard.helpers.RichContentCommitter
 import org.fossify.keyboard.helpers.VOICE_INPUT_METHOD
 import org.fossify.keyboard.helpers.cachedVNTelexData
 import org.fossify.keyboard.interfaces.OnKeyboardActionListener
+import org.fossify.keyboard.models.GifItem
 import org.fossify.keyboard.views.MyKeyboardView
 import java.io.ByteArrayOutputStream
 import java.util.Locale
@@ -155,10 +158,14 @@ class SimpleKeyboardIME : InputMethodService(), OnKeyboardActionListener, Shared
     private var breakIterator: BreakIterator? = null
 
     private lateinit var binding: KeyboardViewKeyboardBinding
+    private lateinit var gifRepository: GifRepository
+    private lateinit var richContentCommitter: RichContentCommitter
 
     override fun onInitializeInterface() {
         super.onInitializeInterface()
         safeStorageContext.getSharedPrefs().registerOnSharedPreferenceChangeListener(this)
+        gifRepository = GifRepository(safeStorageContext)
+        richContentCommitter = RichContentCommitter(this, gifRepository)
     }
 
     override fun onCreateInputView(): View {
@@ -167,6 +174,9 @@ class SimpleKeyboardIME : InputMethodService(), OnKeyboardActionListener, Shared
             setKeyboardHolder(binding)
             setKeyboard(keyboard!!)
             setEditorInfo(currentInputEditorInfo)
+            setGifSelectionListener { item: GifItem ->
+                richContentCommitter.commit(item, currentInputConnection, currentInputEditorInfo)
+            }
             setupEdgeToEdge()
             mOnKeyboardActionListener = this@SimpleKeyboardIME
         }
@@ -650,6 +660,14 @@ class SimpleKeyboardIME : InputMethodService(), OnKeyboardActionListener, Shared
                 updateBackgroundColors()
             }
         }
+    }
+
+    override fun onDestroy() {
+        keyboardView?.closeGifPanel()
+        if (::gifRepository.isInitialized) gifRepository.close()
+        if (::richContentCommitter.isInitialized) richContentCommitter.close()
+        safeStorageContext.getSharedPrefs().unregisterOnSharedPreferenceChangeListener(this)
+        super.onDestroy()
     }
 
     private fun setupEdgeToEdge() {

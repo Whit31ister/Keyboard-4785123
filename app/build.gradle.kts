@@ -26,6 +26,7 @@ fun hasSigningVars(): Boolean {
 val baseVersionCode = project.property("VERSION_CODE").toString().toInt()
 val abiCodes = mapOf("armeabi-v7a" to 1, "arm64-v8a" to 2, "x86" to 3, "x86_64" to 4)
 val abiSplits = providers.gradleProperty("ABI_SPLITS").map(String::toBoolean).getOrElse(false)
+val gifApiKey = providers.gradleProperty("GIF_API_KEY").orElse(providers.environmentVariable("GIF_API_KEY")).getOrElse("")
 
 base {
     archivesName = "keyboard-$baseVersionCode"
@@ -40,6 +41,7 @@ android {
         targetSdk = project.libs.versions.app.build.targetSDK.get().toInt()
         versionName = project.property("VERSION_NAME").toString()
         versionCode = baseVersionCode
+        buildConfigField("String", "GIF_API_KEY", "\"${gifApiKey.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
         multiDexEnabled = true
         vectorDrawables.useSupportLibrary = true
         ksp {
@@ -172,9 +174,12 @@ detekt {
 }
 
 dependencies {
+    implementation(libs.androidx.core)
     implementation(libs.fossify.commons)
     implementation(libs.androidx.emoji2.bundled)
     implementation(libs.androidx.autofill)
+    implementation(libs.glide)
+    implementation(libs.kotlinx.coroutines.android)
 
     implementation(libs.bundles.room)
     ksp(libs.androidx.room.compiler)

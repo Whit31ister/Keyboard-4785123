@@ -7,7 +7,7 @@
 Introducing Fossify Keyboard – your go-to solution for effortless and efficient typing. Experience a seamless typing experience designed to cater to all your needs, whether chatting with friends or inserting texts, numbers, or symbols.
 
 **📶 OFFLINE FUNCTIONALITY:**    
-Fossify Keyboard operates entirely offline without internet permission, allowing you to use it anytime, anywhere, without needing an internet connection. This also provides you with more privacy, security, and stability compared to other keyboards that connect to the internet.
+Fossify Keyboard's core typing features operate offline. Optional GIF search requires internet access only when the GIF panel is used and a GIF API key is configured; typing, emojis, and saved clips remain available without a connection.
 
 **🌐 MULTIPLE LANGUAGES AND LAYOUTS:**    
 Choose from a wide variety of languages and keyboard layouts. Fossify Keyboard supports multiple languages, making it easy for you to switch and type in your preferred language effortlessly.
@@ -23,6 +23,19 @@ Enjoy a sleek, modern design with a default dark theme. Fossify Keyboard offers 
 
 **🔒 PRIVACY AND SECURITY:**    
 Your privacy is our top priority. Fossify Keyboard does not collect or share any user information with third parties. Experience peace of mind knowing your typing activity remains private and secure.
+
+**🎞️ GIF SEARCH:**
+The optional GIF panel currently searches and previews GIFs through Tenor API v2. It requires an internet connection when the panel is opened and a Tenor API key to be configured at build time. GIFs are downloaded only after selection and are inserted directly into apps that support `image/gif`; otherwise, the GIF URL is inserted as a fallback. Builds without a key keep the GIF panel unavailable.
+
+GIF provider access is configured with the `GIF_API_KEY` Gradle property or environment variable:
+
+```bash
+GIF_API_KEY=your_provider_key ./gradlew assembleDebug
+```
+
+The key is compiled into the application for this client-side implementation, so it must be treated as public and restricted according to the provider's limits. For a production release, use a small backend proxy to keep provider credentials off-device and to provide rate limiting, caching, moderation, and the flexibility to change providers. Verify Tenor's current API availability and review the selected provider's availability, attribution, content, and commercial-use terms before distributing a release build.
+
+The GIF panel is an optional online feature; normal typing, emojis, and saved clips continue to work offline.
 
 **🎨 CUSTOMIZABLE COLORS:**    
 Personalize your keyboard with customizable colors. Fossify Keyboard allows you to choose and adjust colors to match your style and preferences.
@@ -42,5 +55,3 @@ Experience typing like never before – efficient, personalized, and secure. Dow
 <img alt="App image" src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_en-US.png" width="30%">
 <img alt="App image" src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_en-US.png" width="30%">
 </div>
-
-
