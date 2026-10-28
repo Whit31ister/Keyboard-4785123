@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Added optional GIF search, previews, caching, and rich content insertion through Tenor API v2
+
 ### Fixed
 - Fixed the letter ё being untypeable on the Russian keyboard; long-press the е key to type it ([#405])
 
